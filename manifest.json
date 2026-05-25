@@ -1,7 +1,7 @@
 {
-  "name": "TOEFL 96 Trainer",
-  "short_name": "TOEFL 96",
-  "description": "Self-paced TOEFL iBT trainer for the 96-point target. SRS vocabulary, Speaking timer with recording, shadowing tool, and a 26-week program tracker.",
+  "name": "TOEFL 100 Trainer",
+  "short_name": "TOEFL 100",
+  "description": "Self-paced TOEFL iBT trainer for the 100-point target. SRS vocabulary, Speaking timer with recording, shadowing tool, and a 26-week program tracker.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
