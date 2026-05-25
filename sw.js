@@ -1,4 +1,4 @@
-/* TOEFL 96 Trainer — Service Worker
+/* TOEFL 100 Trainer — Service Worker
    Strategy:
    - App shell (HTML/manifest/icons): cache-first with background update
    - Tailwind CDN & Google Fonts: cache-first (stale-while-revalidate)
@@ -6,7 +6,7 @@
    - Everything else: network-first with cache fallback
 */
 
-const APP_VERSION = 'v1.0.0';
+const APP_VERSION = 'v1.1.0';
 const APP_CACHE = `toefl96-shell-${APP_VERSION}`;
 const RUNTIME_CACHE = `toefl96-runtime-${APP_VERSION}`;
 

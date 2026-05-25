@@ -594,7 +594,7 @@ python -m http.server 8000
       </div>
       <div>
         <label class="block text-sm font-medium mb-1.5">Target score</label>
-        <input id="setting-goal-score" type="number" min="60" max="120" value="96" class="px-3 py-2 rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm w-28">
+        <input id="setting-goal-score" type="number" min="60" max="120" value="100" class="px-3 py-2 rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm w-28">
       </div>
       <div>
         <label class="block text-sm font-medium mb-1.5">Daily new-card limit</label>
@@ -638,7 +638,7 @@ const STORAGE_KEY = 'toefl96_v1';
 const defaultState = () => ({
   user: {
     startDate: new Date().toISOString().slice(0,10),
-    goalScore: 96,
+    goalScore: 100,
     dailyNewLimit: 20,
     dailyGoalMin: 90,
     darkMode: false

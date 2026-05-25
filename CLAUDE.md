@@ -6,9 +6,9 @@
 
 ## 프로젝트 개요
 
-- **이름:** TOEFL 96 Trainer
-- **목적:** 사용자 본인(전병탁, Principal Engineer · AI PM)이 **TOEFL iBT 96점**을 받아 **서울대 AI 대학원 박사**에 진학하기 위한 6개월(26주) 셀프 트레이닝 PWA
-- **목표 점수 영역 분배:** Reading 27 / Listening 24 / Speaking 22 / Writing 25 = 98 (안전 마진 +2)
+- **이름:** TOEFL 100 Trainer
+- **목적:** 사용자 본인(전병탁, Principal Engineer · AI PM)이 **TOEFL iBT 100점**을 받아 **서울대 AI 대학원 박사**에 진학하기 위한 6개월(26주) 셀프 트레이닝 PWA
+- **목표 점수 영역 분배:** Reading 28 / Listening 25 / Speaking 23 / Writing 26 = 102 (안전 마진 +2)
 - **사용자 출발점:** 독해 강점, 듣기·말하기 약함, 직장 병행
 - **언어:** UI는 영문 라벨 위주, 한국어 보조 / 코드/주석은 영문
 
@@ -74,7 +74,7 @@ toefl-trainer/
 # 현재 폴더가 toefl-trainer/ 라고 가정
 git init
 git add .
-git commit -m "Initial commit: TOEFL 96 Trainer PWA"
+git commit -m "Initial commit: TOEFL 100 Trainer PWA"
 git branch -M main
 git remote add origin https://github.com/btjeon/toefl-trainer.git
 git push -u origin main
@@ -121,10 +121,11 @@ git push -u origin main
 - ADsP 자격, 6 Sigma Black Belt
 - 코드 리뷰는 엔지니어링 관점에서 가능 — 짧고 정확한 설명 선호
 - 한국어로 답변, 코드는 영문 주석
-- TOEFL 96점이 첫 목표. SNU AI 대학원 박사 진학이 최종 목표
+- TOEFL 100점이 첫 목표. SNU AI 대학원 박사 진학이 최종 목표
 
 ---
 
 ## 변경 이력
 
-- **2026-05-25**: 초기 버전 작성. Phase 0~4 (26주) 계획 + PWA + 자동 배포 + 오프라인 + 모바일 보강 완료
+- **2026-05-25**: 초기 버전 작성. Phase 0~4 (26주) 계획 + PWA + 자동 배포 + 오프라인 + 모바일 보강 완료. 목표 점수 96점.
+- **2026-05-25**: 목표 점수 96 → 100 상향. 모든 표시 텍스트·아이콘·점수 분배(R28/L25/S23/W26=102) 갱신. 내부 storage 키(`toefl96_*`)와 SW 캐시 prefix는 데이터 보존 위해 유지.

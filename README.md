@@ -1,6 +1,6 @@
-# TOEFL 96 Trainer
+# TOEFL 100 Trainer
 
-> 서울대 AI 대학원 박사 진학을 위한 6개월 토플 96점 도전 트레이너.
+> 서울대 AI 대학원 박사 진학을 위한 6개월 토플 100점 도전 트레이너.
 > 단일 페이지 PWA. 오프라인 동작. 데이터는 모두 기기 로컬에만 저장됨.
 
 **Live demo:** `https://btjeon.github.io/toefl-trainer/`
@@ -42,7 +42,7 @@ cd "C:\Users\gogot\OneDrive\문서\Claude\Projects\영어공부\toefl-trainer"
 
 git init
 git add .
-git commit -m "Initial commit: TOEFL 96 Trainer"
+git commit -m "Initial commit: TOEFL 100 Trainer"
 git branch -M main
 git remote add origin https://github.com/btjeon/toefl-trainer.git
 git push -u origin main
