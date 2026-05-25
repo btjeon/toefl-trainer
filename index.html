@@ -340,10 +340,18 @@
           <p class="text-sm mt-2 text-slate-400">Add new cards or come back tomorrow.</p>
         </div>
         <div id="vocab-card-area" class="min-h-[280px] flex flex-col items-center justify-center text-center">
-          <div id="vocab-front" class="text-4xl font-semibold tracking-tight mb-4"></div>
+          <div class="flex items-center gap-2 mb-4">
+            <div id="vocab-front" class="text-4xl font-semibold tracking-tight"></div>
+            <button id="vocab-tts-front" class="text-slate-400 hover:text-brand-600 p-2 rounded-full" title="Pronounce">
+              <svg class="icon"><use href="#i-speaker"/></svg>
+            </button>
+          </div>
           <div id="vocab-back" class="hidden text-center">
             <div id="vocab-meaning" class="text-xl mb-3 text-slate-700 dark:text-slate-200"></div>
             <div id="vocab-example" class="text-sm text-slate-500 dark:text-slate-400 italic max-w-md mx-auto"></div>
+            <button id="vocab-tts-example" class="hidden mt-3 text-xs text-brand-600 hover:underline items-center gap-1 mx-auto">
+              <svg class="icon-sm"><use href="#i-speaker"/></svg> Speak example
+            </button>
           </div>
         </div>
         <div id="vocab-actions" class="mt-8">
@@ -370,7 +378,12 @@
 
     <div class="space-y-4">
       <div class="card p-5">
-        <h3 class="section-title mb-4">Card Inventory</h3>
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="section-title">Card Inventory</h3>
+          <button id="manage-cards-btn" class="text-xs text-brand-600 hover:underline flex items-center gap-1">
+            <svg class="icon-sm"><use href="#i-pen"/></svg> Manage
+          </button>
+        </div>
         <div class="grid grid-cols-2 gap-3">
           <div class="text-center p-3 rounded-md bg-slate-50 dark:bg-slate-800/50">
             <div class="text-2xl font-semibold text-brand-600 dark:text-brand-400" id="vocab-stat-new">0</div>
@@ -629,6 +642,22 @@ python -m http.server 8000
 
 <div id="toast" class="hidden fixed bottom-6 right-6 px-4 py-2.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-md shadow-lg text-sm font-medium z-50"></div>
 
+<!-- =================== CARD MANAGEMENT MODAL =================== -->
+<div id="manage-modal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+  <div class="bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-3xl max-h-[85vh] flex flex-col">
+    <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+      <h3 class="text-base font-semibold">Manage Cards</h3>
+      <button id="manage-modal-close" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-2xl leading-none px-2" title="Close (Esc)">&times;</button>
+    </div>
+    <div class="px-5 py-3 border-b border-slate-200 dark:border-slate-700">
+      <input id="manage-search" type="text" placeholder="Search word or meaning..."
+        class="w-full px-3 py-2 rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm">
+      <div class="text-xs text-slate-500 mt-2" id="manage-count"></div>
+    </div>
+    <div id="manage-list" class="flex-1 overflow-y-auto px-4 py-3 space-y-2"></div>
+  </div>
+</div>
+
 <script>
 /* =================================================================
    STORAGE
@@ -720,6 +749,42 @@ function toast(msg, ms=2000) {
   t.textContent = msg;
   t.classList.remove('hidden');
   setTimeout(() => t.classList.add('hidden'), ms);
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function speak(text, lang='en-US') {
+  if (!('speechSynthesis' in window)) return toast('TTS not supported in this browser.');
+  if (!text) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = lang;
+  u.rate = 0.95;
+  speechSynthesis.speak(u);
+}
+
+// RFC 4180-style CSV line parser: handles "quoted, fields" and "" escapes inside quotes
+function parseCSVLine(line) {
+  const out = [];
+  let cur = '', inQuote = false, i = 0;
+  while (i < line.length) {
+    const ch = line[i];
+    if (inQuote) {
+      if (ch === '"') {
+        if (line[i+1] === '"') { cur += '"'; i += 2; continue; }
+        inQuote = false; i++; continue;
+      }
+      cur += ch; i++;
+    } else {
+      if (ch === '"' && cur === '') { inQuote = true; i++; continue; }
+      if (ch === ',') { out.push(cur); cur = ''; i++; continue; }
+      cur += ch; i++;
+    }
+  }
+  out.push(cur);
+  return out.map(s => s.trim());
 }
 
 function getTodayLog() {
@@ -934,6 +999,9 @@ function showAnswer() {
   document.getElementById('vocab-back').classList.remove('hidden');
   document.getElementById('vocab-meaning').textContent = currentVocabCard.back;
   document.getElementById('vocab-example').textContent = currentVocabCard.example || '';
+  const ttsEx = document.getElementById('vocab-tts-example');
+  ttsEx.classList.toggle('hidden', !currentVocabCard.example);
+  ttsEx.classList.toggle('inline-flex', !!currentVocabCard.example);
   document.getElementById('vocab-show-btn-wrap').classList.add('hidden');
   document.getElementById('vocab-grade-btns').classList.remove('hidden');
 }
@@ -989,26 +1057,51 @@ document.getElementById('add-card-btn').addEventListener('click', () => {
   const b = document.getElementById('add-back').value.trim();
   const ex = document.getElementById('add-example').value.trim();
   if (!f || !b) return toast('Word and meaning required.');
+  const dup = state.vocab.cards.find(c => c.front.toLowerCase() === f.toLowerCase());
+  if (dup) return toast(`"${dup.front}" already exists.`);
   state.vocab.cards.push(newCard(f, b, ex));
   saveState();
   ['add-front','add-back','add-example'].forEach(i => document.getElementById(i).value = '');
+  document.getElementById('add-front').focus();
   toast('Card added.'); renderVocab();
+});
+
+// Enter key in any Add-Card input submits the form (one-handed quick add)
+['add-front','add-back','add-example'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('add-card-btn').click(); }
+  });
+});
+
+// TTS pronunciation buttons
+document.getElementById('vocab-tts-front').addEventListener('click', e => {
+  e.stopPropagation();
+  if (currentVocabCard) speak(currentVocabCard.front);
+});
+document.getElementById('vocab-tts-example').addEventListener('click', e => {
+  e.stopPropagation();
+  if (currentVocabCard && currentVocabCard.example) speak(currentVocabCard.example);
 });
 
 document.getElementById('bulk-import-btn').addEventListener('click', () => {
   const text = document.getElementById('bulk-import').value.trim();
   if (!text) return;
-  let count = 0;
+  const existing = new Set(state.vocab.cards.map(c => c.front.toLowerCase()));
+  let added = 0, skipped = 0;
   text.split('\n').forEach(line => {
-    const parts = line.split(',').map(s => s.trim());
-    if (parts.length >= 2 && parts[0]) {
-      state.vocab.cards.push(newCard(parts[0], parts[1], parts[2] || ''));
-      count++;
-    }
+    if (!line.trim()) return;
+    const parts = parseCSVLine(line);
+    const f = parts[0], b = parts[1], ex = parts[2] || '';
+    if (!f || !b) return;
+    if (existing.has(f.toLowerCase())) { skipped++; return; }
+    state.vocab.cards.push(newCard(f, b, ex));
+    existing.add(f.toLowerCase());
+    added++;
   });
   saveState();
   document.getElementById('bulk-import').value = '';
-  toast(`${count} cards imported.`); renderVocab();
+  toast(`${added} added${skipped ? `, ${skipped} duplicates skipped` : ''}.`);
+  renderVocab();
 });
 
 const AWL_SEED = [
@@ -1073,6 +1166,128 @@ document.getElementById('seed-awl-btn').addEventListener('click', () => {
   });
   saveState();
   toast(`${count} AWL words added.`); renderVocab();
+});
+
+/* ---------------- Card Management Modal ---------------- */
+const STATE_BADGES = {
+  new:       'bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300',
+  learning:  'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+  review:    'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+  mastered:  'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
+};
+
+function openManageModal() {
+  document.getElementById('manage-search').value = '';
+  renderManageList('');
+  document.getElementById('manage-modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('manage-search').focus(), 50);
+}
+
+function closeManageModal() {
+  document.getElementById('manage-modal').classList.add('hidden');
+  renderVocab();
+}
+
+function renderManageList(query) {
+  const q = (query || '').toLowerCase().trim();
+  const list = document.getElementById('manage-list');
+  const filtered = state.vocab.cards.filter(c =>
+    !q || c.front.toLowerCase().includes(q) || c.back.toLowerCase().includes(q)
+  );
+  // Sort: alphabetical by front for predictable browsing
+  filtered.sort((a,b) => a.front.localeCompare(b.front));
+  document.getElementById('manage-count').textContent =
+    q ? `${filtered.length} matching of ${state.vocab.cards.length}`
+      : `${state.vocab.cards.length} card${state.vocab.cards.length===1?'':'s'} total`;
+  if (!filtered.length) {
+    list.innerHTML = `<div class="text-center text-slate-500 py-10 text-sm">${q ? 'No cards match this search.' : 'No cards yet. Add some from the sidebar.'}</div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(c => `
+    <div class="manage-row p-3 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50" data-id="${c.id}">
+      <div class="flex items-center gap-2 mb-1">
+        <div class="font-semibold text-base flex-1 truncate">${escapeHtml(c.front)}</div>
+        <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded ${STATE_BADGES[c.state] || ''}">${c.state}</span>
+        <button class="manage-tts text-slate-400 hover:text-brand-600 p-1" title="Pronounce"><svg class="icon-sm"><use href="#i-speaker"/></svg></button>
+        <button class="manage-edit text-slate-400 hover:text-brand-600 p-1" title="Edit"><svg class="icon-sm"><use href="#i-pen"/></svg></button>
+        <button class="manage-delete text-slate-400 hover:text-rose-600 p-1" title="Delete"><svg class="icon-sm"><use href="#i-trash"/></svg></button>
+      </div>
+      <div class="text-sm text-slate-600 dark:text-slate-300">${escapeHtml(c.back)}</div>
+      ${c.example ? `<div class="text-xs text-slate-500 dark:text-slate-400 italic mt-1">${escapeHtml(c.example)}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function enterEditMode(row, card) {
+  row.innerHTML = `
+    <input class="edit-front w-full px-2 py-1.5 mb-1.5 rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-700 text-sm font-semibold" value="${escapeHtml(card.front)}">
+    <input class="edit-back w-full px-2 py-1.5 mb-1.5 rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-700 text-sm" value="${escapeHtml(card.back)}">
+    <input class="edit-example w-full px-2 py-1.5 mb-2 rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-700 text-xs" value="${escapeHtml(card.example || '')}" placeholder="Example (optional)">
+    <div class="flex gap-2">
+      <button class="edit-save flex-1 py-1.5 btn-primary rounded text-xs font-medium">Save</button>
+      <button class="edit-cancel flex-1 py-1.5 btn-secondary rounded text-xs font-medium">Cancel</button>
+    </div>
+  `;
+  const frontInput = row.querySelector('.edit-front');
+  frontInput.focus();
+  frontInput.select();
+
+  const save = () => {
+    const newFront = row.querySelector('.edit-front').value.trim();
+    const newBack = row.querySelector('.edit-back').value.trim();
+    const newExample = row.querySelector('.edit-example').value.trim();
+    if (!newFront || !newBack) return toast('Word and meaning required.');
+    const conflict = state.vocab.cards.find(c =>
+      c.id !== card.id && c.front.toLowerCase() === newFront.toLowerCase()
+    );
+    if (conflict) return toast(`"${conflict.front}" already exists.`);
+    card.front = newFront; card.back = newBack; card.example = newExample;
+    saveState();
+    renderManageList(document.getElementById('manage-search').value);
+    toast('Card updated.');
+  };
+  row.querySelector('.edit-save').addEventListener('click', save);
+  row.querySelector('.edit-cancel').addEventListener('click', () => {
+    renderManageList(document.getElementById('manage-search').value);
+  });
+  row.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); save(); }
+      else if (e.key === 'Escape') { e.preventDefault(); renderManageList(document.getElementById('manage-search').value); }
+    });
+  });
+}
+
+document.getElementById('manage-cards-btn').addEventListener('click', openManageModal);
+document.getElementById('manage-modal-close').addEventListener('click', closeManageModal);
+document.getElementById('manage-modal').addEventListener('click', e => {
+  if (e.target.id === 'manage-modal') closeManageModal();
+});
+document.getElementById('manage-search').addEventListener('input', e => renderManageList(e.target.value));
+
+document.getElementById('manage-list').addEventListener('click', e => {
+  const row = e.target.closest('.manage-row');
+  if (!row) return;
+  const id = parseInt(row.dataset.id);
+  const card = state.vocab.cards.find(c => c.id === id);
+  if (!card) return;
+  if (e.target.closest('.manage-delete')) {
+    if (!confirm(`Delete "${card.front}"?`)) return;
+    state.vocab.cards = state.vocab.cards.filter(c => c.id !== id);
+    saveState();
+    renderManageList(document.getElementById('manage-search').value);
+    toast('Card deleted.');
+  } else if (e.target.closest('.manage-edit')) {
+    enterEditMode(row, card);
+  } else if (e.target.closest('.manage-tts')) {
+    speak(card.front);
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !document.getElementById('manage-modal').classList.contains('hidden')) {
+    closeManageModal();
+  }
 });
 
 /* =================================================================
