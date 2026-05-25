@@ -1326,9 +1326,30 @@ document.getElementById('yt-load').addEventListener('click', () => {
   if (!ytReady) return toast('YouTube API loading...');
   // Reset fallback panel
   document.getElementById('yt-fallback').classList.add('hidden');
-  document.getElementById('yt-player').innerHTML = '';
   // Always pre-fill the fallback link so the user can open externally if needed
   document.getElementById('yt-fallback-link').href = `https://www.youtube.com/watch?v=${id}`;
+
+  // Swap the video on the existing player when possible — avoids tearing down the iframe
+  if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
+    try {
+      ytPlayer.loadVideoById(id);
+      return;
+    } catch (_) { /* fall through to full rebuild */ }
+  }
+
+  // Rebuild the placeholder div: YT.Player replaces it with an iframe on first load
+  if (ytPlayer && typeof ytPlayer.destroy === 'function') {
+    try { ytPlayer.destroy(); } catch (_) {}
+  }
+  ytPlayer = null;
+  const wrap = document.getElementById('yt-player-wrap');
+  const stale = document.getElementById('yt-player');
+  if (stale) stale.remove();
+  const fresh = document.createElement('div');
+  fresh.id = 'yt-player';
+  fresh.className = 'w-full aspect-video bg-black rounded-md';
+  wrap.insertBefore(fresh, wrap.firstChild);
+
   try {
     ytPlayer = new YT.Player('yt-player', {
       height: '100%', width: '100%', videoId: id,
