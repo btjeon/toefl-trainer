@@ -216,6 +216,9 @@
     <button class="tab-btn active py-3 text-sm font-medium flex items-center gap-2 whitespace-nowrap" data-tab="dashboard">
       <svg class="icon-sm"><use href="#i-dashboard"/></svg> Dashboard
     </button>
+    <button class="tab-btn py-3 text-sm font-medium flex items-center gap-2 whitespace-nowrap" data-tab="reading">
+      <svg class="icon-sm"><use href="#i-document"/></svg> Reading
+    </button>
     <button class="tab-btn py-3 text-sm font-medium flex items-center gap-2 whitespace-nowrap" data-tab="vocab">
       <svg class="icon-sm"><use href="#i-book"/></svg> Vocabulary
     </button>
@@ -326,6 +329,84 @@
 </section>
 
 <!-- =================== VOCABULARY =================== -->
+<!-- =================== READING =================== -->
+<section id="tab-reading" class="tab-pane hidden">
+  <!-- Idle screen: passage picker -->
+  <div id="reading-idle">
+    <div class="card p-6 mb-6">
+      <h2 class="section-title mb-4">TOEFL Reading Practice</h2>
+      <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">
+        Each passage runs ~600–700 words with 5–7 questions covering the five core TOEFL question types:
+        Factual, Negative Factual, Inference, Vocabulary, and Sentence Simplification.
+        Timer is informational only — finish at your pace, then score.
+      </p>
+      <div id="reading-passage-list" class="space-y-2"></div>
+      <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+        <button id="reading-generate-btn" class="w-full py-2 btn-secondary rounded-md text-sm font-medium flex items-center justify-center gap-1.5">
+          <svg class="icon-sm"><use href="#i-shuffle"/></svg> Generate New Passage (Claude API)
+        </button>
+        <p class="text-xs text-slate-500 mt-2">Requires an Anthropic API key (set in Settings). Coming soon — currently a stub.</p>
+      </div>
+    </div>
+
+    <div class="card p-5">
+      <h3 class="section-title mb-3">Recent Attempts</h3>
+      <div id="reading-history" class="text-sm text-slate-600 dark:text-slate-400"></div>
+    </div>
+  </div>
+
+  <!-- Active screen: passage + questions -->
+  <div id="reading-active" class="hidden">
+    <div class="card p-4 mb-4 flex items-center justify-between flex-wrap gap-3">
+      <div class="flex items-center gap-3">
+        <button id="reading-exit-btn" class="text-sm text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 flex items-center gap-1">
+          <svg class="icon-sm"><use href="#i-chevron-right"/></svg><span class="rotate-180 inline-block">›</span> Exit
+        </button>
+        <div class="text-sm font-medium" id="reading-active-title">—</div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="text-sm tabular-nums" id="reading-timer">00:00</div>
+        <div class="text-sm" id="reading-progress">0 / 0</div>
+        <button id="reading-submit-btn" class="px-3 py-1.5 btn-primary rounded-md text-sm font-medium">Submit</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="card p-6 overflow-y-auto lg:max-h-[75vh]">
+        <div id="reading-passage-content" class="prose prose-slate dark:prose-invert max-w-none text-sm leading-relaxed"></div>
+      </div>
+      <div class="card p-6 lg:max-h-[75vh] overflow-y-auto">
+        <div id="reading-question-area"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Result screen -->
+  <div id="reading-result" class="hidden">
+    <div class="card p-6 mb-4">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="section-title">Result</h2>
+        <button id="reading-result-back" class="text-sm text-brand-600 hover:underline">Back to list</button>
+      </div>
+      <div class="grid grid-cols-3 gap-4 mb-4">
+        <div class="text-center p-4 rounded-md bg-slate-50 dark:bg-slate-800/50">
+          <div class="text-3xl font-semibold" id="reading-result-score">0/0</div>
+          <div class="text-xs uppercase tracking-wider text-slate-500 mt-1">Score</div>
+        </div>
+        <div class="text-center p-4 rounded-md bg-slate-50 dark:bg-slate-800/50">
+          <div class="text-3xl font-semibold" id="reading-result-percent">0%</div>
+          <div class="text-xs uppercase tracking-wider text-slate-500 mt-1">Accuracy</div>
+        </div>
+        <div class="text-center p-4 rounded-md bg-slate-50 dark:bg-slate-800/50">
+          <div class="text-3xl font-semibold tabular-nums" id="reading-result-time">0:00</div>
+          <div class="text-xs uppercase tracking-wider text-slate-500 mt-1">Time</div>
+        </div>
+      </div>
+      <div id="reading-result-breakdown" class="space-y-3"></div>
+    </div>
+  </div>
+</section>
+
 <section id="tab-vocab" class="tab-pane hidden">
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <div class="lg:col-span-2">
@@ -678,7 +759,8 @@ const defaultState = () => ({
   dailyLog: {},
   vocab: { cards: [], nextId: 1 },
   speaking: { attempts: [] },
-  shadowing: { transcript: [], lastSource: null, audioFileName: null }
+  shadowing: { transcript: [], lastSource: null, audioFileName: null },
+  reading: { attempts: [], customPassages: [] }
 });
 
 let state = loadState();
@@ -829,6 +911,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
     document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
     if (btn.dataset.tab === 'dashboard') renderDashboard();
+    if (btn.dataset.tab === 'reading') renderReading();
     if (btn.dataset.tab === 'vocab') renderVocab();
     if (btn.dataset.tab === 'speaking') renderRecordings();
     if (btn.dataset.tab === 'shadowing') renderTranscript();
@@ -1469,6 +1552,367 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && !document.getElementById('manage-modal').classList.contains('hidden')) {
     closeManageModal();
   }
+});
+
+/* =================================================================
+   READING
+   ================================================================= */
+const READING_PASSAGES = [
+  {
+    id: 'mangroves',
+    title: 'Mangrove Forests',
+    topic: 'Biology / Ecology',
+    paragraphs: [
+      'Mangroves are a unique group of trees and shrubs that have evolved to thrive in the harsh intertidal zones of tropical and subtropical coastlines. Unlike most plants, which would quickly die in such a punishing environment, mangroves have developed remarkable physiological adaptations that allow them to flourish in waterlogged soils saturated with salt. These coastal forests, which currently cover an estimated 137,000 square kilometers worldwide, form a critical interface between land and sea, supporting an extraordinary diversity of marine and terrestrial life.',
+      'Among the most striking features of mangroves are their elaborate root systems. Many species develop aerial roots called pneumatophores—pencil-like projections that emerge vertically from the muddy substrate to bring oxygen to roots otherwise smothered by anaerobic sediments. Other species rely on prop roots that arch outward from the trunk like a tangle of stilts, providing both structural stability against tidal currents and additional surface area for gas exchange. These root architectures not only solve the oxygen problem but also trap sediment, gradually building up the coastline and creating new land.',
+      'To survive in seawater, mangroves must contend with salt concentrations that would be lethal to most plants. They have evolved several complementary strategies. Some species, such as the red mangrove (Rhizophora mangle), exclude up to 97 percent of salt at the root surface through ultrafiltration, allowing only relatively fresh water to enter the plant. Others, such as the white mangrove, take up salt but then excrete it through specialized glands on their leaves, leaving visible crystals on the leaf surface. A third strategy involves storing excess salt in older leaves, which the tree eventually sheds. Importantly, no single species relies entirely on one approach; most mangroves combine elements of all three.',
+      'The ecological value of mangrove forests extends far beyond the species that live within them. Their dense root systems function as effective wave attenuators, dissipating the energy of storms and reducing coastal erosion during hurricanes and tsunamis. A 100-meter-wide belt of mangroves can reduce wave height by more than 60 percent, providing a natural form of coastal defense that artificial seawalls struggle to match in either cost or longevity. Additionally, mangroves serve as critical nursery habitats for many commercially important fish species, sheltering juveniles among their submerged roots until the fish are large enough to venture into open water.',
+      'Despite their importance, mangrove forests have declined by approximately 30 to 50 percent over the past half-century, largely due to coastal development, aquaculture—particularly shrimp farming—and the clearing of land for agriculture. The loss is particularly troubling because mangroves sequester carbon at rates far exceeding those of most terrestrial forests, up to four times as much per hectare, making their destruction a significant contributor to climate change. Conservation efforts, including the restoration of degraded areas and the legal protection of remaining forests, have shown promise, but the rate of replanting still falls short of the rate of loss in many regions.'
+    ],
+    questions: [
+      {
+        type: 'vocab', paragraphRef: 1, highlight: 'harsh',
+        prompt: 'The word "harsh" in paragraph 1 is closest in meaning to',
+        options: ['unfamiliar', 'severe', 'distant', 'specific'],
+        answer: 1,
+        explanation: '"Harsh" describes intensely difficult or punishing conditions — closest to "severe."'
+      },
+      {
+        type: 'factual', paragraphRef: 2,
+        prompt: 'According to paragraph 2, pneumatophores function primarily to',
+        options: [
+          'anchor the tree against tidal currents',
+          'bring oxygen to roots buried in anaerobic mud',
+          'expel excess salt from the tree',
+          'block sunlight from reaching the lower roots'
+        ],
+        answer: 1,
+        explanation: 'The passage explicitly states pneumatophores "bring oxygen to roots otherwise smothered by anaerobic sediments."'
+      },
+      {
+        type: 'vocab', paragraphRef: 3, highlight: 'lethal',
+        prompt: 'The word "lethal" in paragraph 3 is closest in meaning to',
+        options: ['fatal', 'unpleasant', 'lengthy', 'concentrated'],
+        answer: 0,
+        explanation: '"Lethal" means causing death, synonymous with "fatal."'
+      },
+      {
+        type: 'negative', paragraphRef: 3,
+        prompt: 'According to paragraph 3, mangroves use all of the following strategies to manage salt EXCEPT',
+        options: [
+          'filtering salt at the root surface',
+          'excreting salt through specialized leaf glands',
+          'accumulating salt in older leaves that are later shed',
+          'converting absorbed salt into harmless compounds inside the trunk'
+        ],
+        answer: 3,
+        explanation: 'The passage mentions filtration, excretion via leaf glands, and storage in shed leaves — but never internal conversion of salt.'
+      },
+      {
+        type: 'inference', paragraphRef: 4,
+        prompt: 'Paragraph 4 suggests that, compared to mangrove forests, artificial seawalls',
+        options: [
+          'protect a wider area against storm damage',
+          'are more cost-effective over the long term',
+          'are less cost-effective and less durable',
+          'are required only in regions without mangroves'
+        ],
+        answer: 2,
+        explanation: 'The author writes that mangroves provide protection "that artificial seawalls struggle to match in either cost or longevity," implying seawalls are worse on both counts.'
+      },
+      {
+        type: 'simplify', paragraphRef: 5,
+        highlight: 'The loss is particularly troubling because mangroves sequester carbon at rates far exceeding those of most terrestrial forests, up to four times as much per hectare, making their destruction a significant contributor to climate change.',
+        prompt: 'Which of the following best expresses the essential information in the highlighted sentence? Incorrect choices change the meaning or omit essential information.',
+        options: [
+          'Mangroves store far more carbon per hectare than other forests, so their destruction worsens climate change.',
+          'Climate change is causing the destruction of mangrove forests at an alarming rate.',
+          'Terrestrial forests store less carbon than mangroves and are therefore at greater risk.',
+          'Because mangroves hold four times more carbon, they are usually destroyed last.'
+        ],
+        answer: 0,
+        explanation: 'The essential ideas: (a) mangroves capture more carbon than other forests, and (b) destroying them worsens climate change. Choice A captures both. B reverses cause and effect; C makes an unsupported claim about other forests; D contradicts the passage.'
+      },
+      {
+        type: 'factual', paragraphRef: 5,
+        prompt: 'According to paragraph 5, the decline of mangrove forests is primarily attributable to',
+        options: [
+          'rising sea levels driven by climate change',
+          'invasive species displacing native mangroves',
+          'human activities such as aquaculture and agriculture',
+          'natural disasters such as hurricanes and tsunamis'
+        ],
+        answer: 2,
+        explanation: 'Paragraph 5 attributes the 30–50% decline to "coastal development, aquaculture... and the clearing of land for agriculture" — all human activities.'
+      }
+    ]
+  }
+];
+
+const QTYPE_LABELS = {
+  vocab: 'Vocabulary',
+  factual: 'Factual',
+  negative: 'Negative Factual',
+  inference: 'Inference',
+  simplify: 'Sentence Simplification'
+};
+
+let activeReading = null;       // { passage, currentQ, answers, startedAt, timerInterval }
+let readingTimerInterval = null;
+
+function getReadingPassages() {
+  return [...READING_PASSAGES, ...state.reading.customPassages];
+}
+
+function findPassage(id) {
+  return getReadingPassages().find(p => p.id === id);
+}
+
+function renderReading() {
+  // Default to idle view unless an attempt is currently in progress
+  if (activeReading) {
+    showReadingScreen('active');
+    return;
+  }
+  showReadingScreen('idle');
+  renderReadingList();
+  renderReadingHistory();
+}
+
+function showReadingScreen(which) {
+  ['idle','active','result'].forEach(name => {
+    document.getElementById('reading-' + name).classList.toggle('hidden', name !== which);
+  });
+}
+
+function renderReadingList() {
+  const list = document.getElementById('reading-passage-list');
+  const passages = getReadingPassages();
+  if (!passages.length) {
+    list.innerHTML = '<div class="text-sm text-slate-500">No passages available yet.</div>';
+    return;
+  }
+  list.innerHTML = passages.map(p => {
+    const lastAttempt = [...state.reading.attempts].reverse().find(a => a.passageId === p.id);
+    const lastInfo = lastAttempt
+      ? `<span class="text-xs text-slate-500">Best: ${bestScoreFor(p.id)}/${p.questions.length}</span>`
+      : '<span class="text-xs text-slate-400">Not attempted</span>';
+    return `
+      <button data-pid="${p.id}" class="reading-start-row w-full text-left p-3 rounded-md border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center justify-between gap-3">
+        <div>
+          <div class="font-medium text-sm">${escapeHtml(p.title)}</div>
+          <div class="text-xs text-slate-500 mt-0.5">${escapeHtml(p.topic)} · ${p.questions.length} questions</div>
+        </div>
+        ${lastInfo}
+      </button>
+    `;
+  }).join('');
+}
+
+function bestScoreFor(passageId) {
+  return state.reading.attempts
+    .filter(a => a.passageId === passageId)
+    .reduce((m, a) => Math.max(m, a.score), 0);
+}
+
+function renderReadingHistory() {
+  const wrap = document.getElementById('reading-history');
+  const attempts = [...state.reading.attempts].reverse().slice(0, 8);
+  if (!attempts.length) {
+    wrap.innerHTML = '<div class="text-slate-400">No attempts yet.</div>';
+    return;
+  }
+  wrap.innerHTML = attempts.map(a => {
+    const date = new Date(a.startedAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+    const pct = Math.round((a.score / a.total) * 100);
+    return `<div class="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
+      <div>
+        <div class="font-medium">${escapeHtml(a.title)}</div>
+        <div class="text-xs text-slate-500">${date} · ${formatDuration(a.duration)}</div>
+      </div>
+      <div class="text-right">
+        <div class="font-semibold">${a.score}/${a.total}</div>
+        <div class="text-xs text-slate-500">${pct}%</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function formatDuration(seconds) {
+  const m = Math.floor(seconds / 60), s = seconds % 60;
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+
+function startReadingAttempt(passageId) {
+  const passage = findPassage(passageId);
+  if (!passage) return;
+  activeReading = {
+    passage,
+    currentQ: 0,
+    answers: new Array(passage.questions.length).fill(-1),
+    startedAt: Date.now()
+  };
+  document.getElementById('reading-active-title').textContent = passage.title;
+  document.getElementById('reading-progress').textContent = `1 / ${passage.questions.length}`;
+  showReadingScreen('active');
+  renderPassageContent();
+  renderActiveQuestion();
+  startReadingTimer();
+}
+
+function renderPassageContent() {
+  if (!activeReading) return;
+  const { passage, currentQ } = activeReading;
+  const q = passage.questions[currentQ];
+  const wrap = document.getElementById('reading-passage-content');
+  wrap.innerHTML = passage.paragraphs.map((para, idx) => {
+    const isActive = q && q.paragraphRef === idx + 1;
+    let html = escapeHtml(para);
+    if (isActive && q.highlight) {
+      const safeHL = escapeHtml(q.highlight);
+      // Replace highlight token with marked span (first match only)
+      html = html.replace(safeHL, `<mark class="bg-amber-200 dark:bg-amber-900/60 px-0.5 rounded">${safeHL}</mark>`);
+    }
+    const border = isActive ? 'border-l-4 border-brand-500 pl-3' : 'pl-4';
+    return `<p class="${border} mb-3"><span class="text-xs text-slate-400 mr-2">[${idx+1}]</span>${html}</p>`;
+  }).join('');
+}
+
+function renderActiveQuestion() {
+  if (!activeReading) return;
+  const { passage, currentQ, answers } = activeReading;
+  const q = passage.questions[currentQ];
+  const area = document.getElementById('reading-question-area');
+  area.innerHTML = `
+    <div class="flex items-center justify-between mb-3">
+      <div class="text-xs uppercase tracking-wider text-slate-500 font-medium">${QTYPE_LABELS[q.type]}</div>
+      <div class="text-xs text-slate-500">Q${currentQ + 1} of ${passage.questions.length}</div>
+    </div>
+    ${q.highlight && q.type === 'simplify' ? `<div class="mb-3 p-3 rounded bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-sm italic">"${escapeHtml(q.highlight)}"</div>` : ''}
+    <div class="text-sm mb-4 leading-relaxed">${escapeHtml(q.prompt)}</div>
+    <div class="space-y-2">
+      ${q.options.map((opt, i) => `
+        <button class="reading-option w-full text-left px-3 py-2.5 rounded-md border text-sm transition ${answers[currentQ] === i ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-200' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50'}" data-opt="${i}">
+          <span class="font-semibold mr-2">${String.fromCharCode(65 + i)}.</span>${escapeHtml(opt)}
+        </button>
+      `).join('')}
+    </div>
+    <div class="flex items-center justify-between mt-5 gap-2">
+      <button id="reading-prev-q" class="px-3 py-1.5 btn-secondary rounded text-xs ${currentQ === 0 ? 'invisible' : ''}">‹ Previous</button>
+      <button id="reading-next-q" class="px-3 py-1.5 btn-secondary rounded text-xs ${currentQ === passage.questions.length - 1 ? 'invisible' : ''}">Next ›</button>
+    </div>
+  `;
+  document.getElementById('reading-progress').textContent = `${currentQ + 1} / ${passage.questions.length}`;
+}
+
+document.getElementById('reading-question-area').addEventListener('click', e => {
+  const opt = e.target.closest('.reading-option');
+  if (opt && activeReading) {
+    activeReading.answers[activeReading.currentQ] = parseInt(opt.dataset.opt);
+    renderActiveQuestion();
+    return;
+  }
+  if (e.target.id === 'reading-prev-q' && activeReading && activeReading.currentQ > 0) {
+    activeReading.currentQ--;
+    renderPassageContent();
+    renderActiveQuestion();
+  }
+  if (e.target.id === 'reading-next-q' && activeReading && activeReading.currentQ < activeReading.passage.questions.length - 1) {
+    activeReading.currentQ++;
+    renderPassageContent();
+    renderActiveQuestion();
+  }
+});
+
+function startReadingTimer() {
+  const display = document.getElementById('reading-timer');
+  display.textContent = '00:00';
+  if (readingTimerInterval) clearInterval(readingTimerInterval);
+  readingTimerInterval = setInterval(() => {
+    if (!activeReading) return;
+    const elapsed = Math.floor((Date.now() - activeReading.startedAt) / 1000);
+    const m = Math.floor(elapsed / 60), s = elapsed % 60;
+    display.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }, 1000);
+}
+
+function submitReadingAttempt() {
+  if (!activeReading) return;
+  const unanswered = activeReading.answers.filter(a => a === -1).length;
+  if (unanswered > 0 && !confirm(`${unanswered} question${unanswered === 1 ? '' : 's'} unanswered. Submit anyway?`)) return;
+  const { passage, answers, startedAt } = activeReading;
+  const duration = Math.floor((Date.now() - startedAt) / 1000);
+  let score = 0;
+  const perType = {};
+  passage.questions.forEach((q, i) => {
+    if (!perType[q.type]) perType[q.type] = { right: 0, total: 0 };
+    perType[q.type].total++;
+    if (answers[i] === q.answer) { score++; perType[q.type].right++; }
+  });
+  const attempt = {
+    passageId: passage.id,
+    title: passage.title,
+    startedAt: new Date(startedAt).toISOString(),
+    duration,
+    score,
+    total: passage.questions.length,
+    answers,
+    perType
+  };
+  state.reading.attempts.push(attempt);
+  // Log reading study time toward today's goal (minutes)
+  getTodayLog().reading += Math.max(1, Math.round(duration / 60));
+  markStudyDay();
+  saveState();
+  clearInterval(readingTimerInterval);
+  renderReadingResult(attempt);
+  activeReading = null;
+}
+
+function renderReadingResult(attempt) {
+  const passage = findPassage(attempt.passageId);
+  document.getElementById('reading-result-score').textContent = `${attempt.score}/${attempt.total}`;
+  document.getElementById('reading-result-percent').textContent = `${Math.round((attempt.score / attempt.total) * 100)}%`;
+  document.getElementById('reading-result-time').textContent = formatDuration(attempt.duration);
+  const breakdown = document.getElementById('reading-result-breakdown');
+  breakdown.innerHTML = passage.questions.map((q, i) => {
+    const chosen = attempt.answers[i];
+    const correct = chosen === q.answer;
+    return `
+      <div class="p-3 rounded-md border ${correct ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20' : 'border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20'}">
+        <div class="flex items-start justify-between gap-2 mb-1.5">
+          <div class="text-xs uppercase tracking-wider text-slate-500 font-medium">Q${i+1} · ${QTYPE_LABELS[q.type]}</div>
+          <div class="text-xs font-medium ${correct ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'}">${correct ? 'Correct' : 'Wrong'}</div>
+        </div>
+        <div class="text-sm mb-2">${escapeHtml(q.prompt)}</div>
+        <div class="text-xs space-y-1">
+          <div><span class="text-slate-500">Your answer:</span> ${chosen === -1 ? '<em class="text-slate-400">No answer</em>' : `${String.fromCharCode(65 + chosen)}. ${escapeHtml(q.options[chosen])}`}</div>
+          ${!correct ? `<div><span class="text-slate-500">Correct answer:</span> ${String.fromCharCode(65 + q.answer)}. ${escapeHtml(q.options[q.answer])}</div>` : ''}
+          <div class="text-slate-600 dark:text-slate-400 mt-1.5 italic">${escapeHtml(q.explanation)}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  showReadingScreen('result');
+}
+
+function exitReadingAttempt() {
+  if (activeReading && !confirm('Exit this attempt? Your progress will be lost.')) return;
+  activeReading = null;
+  if (readingTimerInterval) { clearInterval(readingTimerInterval); readingTimerInterval = null; }
+  renderReading();
+}
+
+// Wire reading event handlers
+document.getElementById('reading-passage-list').addEventListener('click', e => {
+  const row = e.target.closest('.reading-start-row');
+  if (row) startReadingAttempt(row.dataset.pid);
+});
+document.getElementById('reading-submit-btn').addEventListener('click', submitReadingAttempt);
+document.getElementById('reading-exit-btn').addEventListener('click', exitReadingAttempt);
+document.getElementById('reading-result-back').addEventListener('click', () => renderReading());
+document.getElementById('reading-generate-btn').addEventListener('click', () => {
+  toast('Claude API generation will be added in the next session. Default passages remain available.');
 });
 
 /* =================================================================

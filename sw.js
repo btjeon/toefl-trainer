@@ -6,7 +6,7 @@
    - Everything else: network-first with cache fallback
 */
 
-const APP_VERSION = 'v1.3.0';
+const APP_VERSION = 'v1.4.0';
 const APP_CACHE = `toefl96-shell-${APP_VERSION}`;
 const RUNTIME_CACHE = `toefl96-runtime-${APP_VERSION}`;
 
