@@ -415,9 +415,11 @@
       <div class="card p-5">
         <h3 class="section-title mb-4">Bulk Import</h3>
         <textarea id="bulk-import" rows="4" placeholder="word,meaning,example&#10;analyze,분석하다,Scientists analyze the data." class="w-full px-3 py-2 mb-2 rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-xs font-mono"></textarea>
+        <button id="bulk-import-btn" class="w-full py-2 btn-secondary rounded-md font-medium text-sm">Import CSV</button>
+        <div class="text-[10px] uppercase tracking-wider text-slate-500 mt-4 mb-2">Seed Packs</div>
         <div class="grid grid-cols-2 gap-2">
-          <button id="bulk-import-btn" class="py-2 btn-secondary rounded-md font-medium text-sm">Import CSV</button>
-          <button id="seed-awl-btn" class="py-2 btn-secondary rounded-md font-medium text-sm">Load AWL Seed</button>
+          <button id="seed-awl-btn" class="py-2 btn-secondary rounded-md font-medium text-sm">AWL · 50</button>
+          <button id="seed-essential-btn" class="py-2 btn-secondary rounded-md font-medium text-sm">Essential · 160</button>
         </div>
       </div>
     </div>
@@ -1157,6 +1159,170 @@ const AWL_SEED = [
   ['respond','반응하다','How did they respond to the news?']
 ];
 
+// TOEFL Essential 150 — high-frequency academic vocabulary, no overlap with AWL_SEED.
+// Curated for TOEFL iBT reading/listening: verbs (~80), adjectives (~40), nouns (~25), connectors (~5).
+const TOEFL_ESSENTIAL = [
+  ['abandon','버리다, 포기하다','Researchers abandoned the experiment after repeated failures.'],
+  ['abundant','풍부한','The region has abundant natural resources.'],
+  ['accelerate','가속화하다','Climate change accelerates polar ice loss.'],
+  ['accommodate','수용하다','The lecture hall can accommodate 500 students.'],
+  ['accumulate','축적하다','Sediment accumulates on the seafloor over millennia.'],
+  ['accurate','정확한','Accurate measurements are essential in physics.'],
+  ['acquire','습득하다, 획득하다','Children acquire language remarkably quickly.'],
+  ['adapt','적응하다','Animals adapt to their environment over generations.'],
+  ['adequate','충분한, 적절한','The funding is adequate for the first phase.'],
+  ['adopt','채택하다, 받아들이다','The committee adopted the new guidelines.'],
+  ['advocate','옹호하다, 지지하다','Many scientists advocate stricter emission limits.'],
+  ['alleviate','완화하다, 경감하다','The new policy aims to alleviate poverty.'],
+  ['allocate','할당하다','The university allocates funds to each department.'],
+  ['alter','바꾸다, 변경하다','Industrialization has altered the landscape.'],
+  ['ambiguous','모호한, 애매한','The results were ambiguous and needed clarification.'],
+  ['anticipate','예상하다','Economists anticipate a slowdown next quarter.'],
+  ['apparent','명백한, 외견상의','The cause of the failure soon became apparent.'],
+  ['apply','적용하다, 지원하다','Students apply theory to practical problems.'],
+  ['articulate','분명히 표현하다 / 또렷한','She articulated her argument clearly.'],
+  ['aspect','측면, 양상','Every aspect of the proposal was reviewed.'],
+  ['assemble','모이다, 조립하다','Workers assemble each device by hand.'],
+  ['associate','연관 짓다','We associate certain odors with specific memories.'],
+  ['attain','달성하다, 도달하다','Few athletes attain Olympic-level performance.'],
+  ['attempt','시도하다','They attempted to climb the peak in winter.'],
+  ['attribute','~의 탓으로 돌리다 / 속성','Historians attribute the decline to internal conflict.'],
+  ['biological','생물학적인','Biological diversity is essential to ecosystem health.'],
+  ['broad','넓은, 광범위한','The theory has broad implications for medicine.'],
+  ['capable','유능한, ~할 수 있는','The instrument is capable of detecting faint signals.'],
+  ['capacity','용량, 능력','The reservoir reached its full capacity in spring.'],
+  ['capture','포착하다, 사로잡다','The painting captures the mood of the era.'],
+  ['catalyst','촉매, 기폭제','The discovery served as a catalyst for further research.'],
+  ['cease','중단하다, 그만두다','The volcano ceased erupting after three weeks.'],
+  ['characterize','특징짓다','The novel is characterized by sparse prose.'],
+  ['classify','분류하다','Biologists classify organisms into kingdoms.'],
+  ['coherent','일관된, 조리 있는','A coherent argument depends on clear evidence.'],
+  ['combine','결합하다','The artist combines tradition with modern techniques.'],
+  ['compensate','보상하다','Plants compensate for low light by growing taller.'],
+  ['compile','편찬하다, 모으다','The editor compiled the essays into a single volume.'],
+  ['comply','따르다, 준수하다','Factories must comply with emission standards.'],
+  ['comprehensive','포괄적인, 종합적인','The report offers a comprehensive overview of the field.'],
+  ['comprise','구성하다, 포함하다','The committee comprises members from seven nations.'],
+  ['conclude','결론짓다','The study concluded that exercise improves memory.'],
+  ['conduct','수행하다','The team conducts experiments year-round.'],
+  ['confine','제한하다, 가두다','The disease is largely confined to tropical regions.'],
+  ['confront','직면하다, 맞서다','The city must confront rising sea levels.'],
+  ['consequence','결과, 영향','Deforestation has serious ecological consequences.'],
+  ['conservative','보수적인','The estimate is conservative and may underrepresent the loss.'],
+  ['considerable','상당한','The project requires considerable expertise.'],
+  ['consume','소비하다, 소모하다','Modern households consume more energy than ever.'],
+  ['contain','포함하다, 억제하다','The article contains several factual errors.'],
+  ['contemporary','동시대의, 현대의','Contemporary art often challenges traditional norms.'],
+  ['contradict','반박하다, 모순되다','New evidence contradicts the earlier theory.'],
+  ['contrary','반대의','Contrary to expectations, the results were positive.'],
+  ['contrast','대조하다 / 대조','Her style contrasts sharply with that of her teacher.'],
+  ['contribute','기여하다','Many factors contribute to academic success.'],
+  ['converge','모이다, 수렴하다','Two rivers converge at the city center.'],
+  ['convert','변환하다','Plants convert sunlight into chemical energy.'],
+  ['convey','전달하다, 운반하다','The image conveys a sense of isolation.'],
+  ['coordinate','조정하다, 협력하다','Researchers coordinate efforts across multiple labs.'],
+  ['correlate','상관관계가 있다','Sleep deprivation correlates with reduced productivity.'],
+  ['correspond','일치하다, 서신을 주고받다','The findings correspond with earlier observations.'],
+  ['criterion','기준 (pl. criteria)','Cost was the main criterion for selection.'],
+  ['crucial','결정적인, 중요한','Early detection is crucial in treating the disease.'],
+  ['decline','감소하다, 거절하다','Bird populations have declined sharply in recent decades.'],
+  ['deduce','추론하다, 연역하다','From the evidence we can deduce the likely cause.'],
+  ['demonstrate','증명하다, 보여주다','The experiment demonstrated a clear relationship.'],
+  ['denote','나타내다, 의미하다','In this graph, red lines denote temperature.'],
+  ['depict','묘사하다','The mural depicts a famous historical battle.'],
+  ['deplete','고갈시키다','Overfishing depletes ocean populations.'],
+  ['designate','지정하다, 명명하다','The area was designated a protected reserve.'],
+  ['detect','감지하다, 탐지하다','The sensor can detect minute changes in pressure.'],
+  ['deteriorate','악화되다','Conditions in the wetland have steadily deteriorated.'],
+  ['devise','고안하다','Engineers devised a new method for water purification.'],
+  ['devote','바치다, 헌신하다','She devoted her career to climate research.'],
+  ['differentiate','구별하다, 차별화하다','We differentiate the two species by their wing pattern.'],
+  ['dilemma','딜레마, 진퇴양난','The committee faced an ethical dilemma.'],
+  ['diminish','줄어들다, 감소시키다','Their influence has gradually diminished.'],
+  ['disclose','공개하다, 폭로하다','The agency declined to disclose the figures.'],
+  ['discrepancy','불일치, 차이','There is a discrepancy between the two reports.'],
+  ['distinguish','구별하다','Experts distinguish the original from the copy easily.'],
+  ['divert','방향을 바꾸다, 전환하다','Engineers diverted the river around the city.'],
+  ['dominate','지배하다','One species dominates the local ecosystem.'],
+  ['dramatic','극적인, 격렬한','The region saw a dramatic shift in climate.'],
+  ['elaborate','자세히 설명하다 / 정교한','The author elaborated on her central thesis.'],
+  ['eliminate','제거하다','Vaccination programs eliminated smallpox.'],
+  ['emerge','나타나다, 부상하다','A new pattern emerged from the data.'],
+  ['emit','방출하다, 배출하다','The plant emits less carbon than older facilities.'],
+  ['emphasize','강조하다','The professor emphasized the need for primary sources.'],
+  ['empirical','경험적인, 실증적인','The claim lacks empirical support.'],
+  ['enable','가능하게 하다','New technology enables remote collaboration.'],
+  ['encompass','포함하다, 망라하다','The field encompasses several related disciplines.'],
+  ['endure','견디다, 지속하다','Some species endure harsh winters underground.'],
+  ['enforce','시행하다, 강제하다','Rangers enforce strict rules in the park.'],
+  ['enhance','향상시키다','Subtitles enhance comprehension for new learners.'],
+  ['ensure','보장하다','Quality checks ensure consistent results.'],
+  ['entail','수반하다','The procedure entails significant risks.'],
+  ['equivalent','동등한, 상응하는','One liter is equivalent to roughly 0.26 gallons.'],
+  ['eradicate','근절하다, 박멸하다','Public health efforts eradicated the disease locally.'],
+  ['erode','침식하다, 부식시키다','Waves slowly erode the coastline.'],
+  ['exceed','초과하다, 능가하다','The cost exceeded the original estimate.'],
+  ['exclude','제외하다','The early studies excluded younger participants.'],
+  ['exhibit','전시하다, 드러내다','Some metals exhibit unusual magnetic properties.'],
+  ['expand','확장하다, 팽창하다','The university plans to expand its science program.'],
+  ['exploit','활용하다, 착취하다','Settlers exploited the region\'s mineral wealth.'],
+  ['extend','확장하다, 연장하다','The deadline was extended by two weeks.'],
+  ['extensive','광범위한, 폭넓은','The library holds an extensive collection of manuscripts.'],
+  ['extract','추출하다, 뽑아내다','Scientists extract DNA from preserved specimens.'],
+  ['facilitate','촉진하다, 용이하게 하다','Smaller class sizes facilitate discussion.'],
+  ['feasible','실행 가능한','Solar power has become economically feasible.'],
+  ['feature','특징짓다 / 특징','The exhibit features rare 17th-century artifacts.'],
+  ['fluctuate','변동하다','Stock prices fluctuate throughout the day.'],
+  ['foster','조성하다, 양육하다','Open dialogue fosters mutual understanding.'],
+  ['fundamental','근본적인, 기본의','Gravity is a fundamental force of nature.'],
+  ['furthermore','게다가, 더욱이','Furthermore, the data is consistent across studies.'],
+  ['generate','생성하다','Wind farms generate clean electricity.'],
+  ['genuine','진짜의, 진실한','Experts confirmed the painting was genuine.'],
+  ['gradual','점진적인','The transition was gradual but unmistakable.'],
+  ['grant','승인하다 / 보조금','The foundation granted funding for the next phase.'],
+  ['halt','중단하다 / 정지','Production halted after the equipment malfunctioned.'],
+  ['hierarchy','계층, 위계','Bees maintain a strict social hierarchy.'],
+  ['highlight','강조하다','The article highlights several overlooked findings.'],
+  ['hinder','방해하다','Heavy rain hindered the rescue operation.'],
+  ['hostile','적대적인','The desert presents a hostile environment for most life.'],
+  ['hypothesis','가설','The hypothesis was tested in three independent trials.'],
+  ['illustrate','설명하다, 예를 들다','The case illustrates the dangers of poor planning.'],
+  ['imminent','임박한','Storm warnings indicated imminent flooding.'],
+  ['impact','영향, 충격','The reform had a lasting impact on education.'],
+  ['impair','손상시키다','Prolonged exposure to noise can impair hearing.'],
+  ['implement','시행하다, 실행하다','The university implemented new safety protocols.'],
+  ['implicit','암묵적인, 내재된','Trust is implicit in the doctor-patient relationship.'],
+  ['imply','암시하다','The data implies a stronger link than first suspected.'],
+  ['impose','부과하다','The government imposed new tariffs on imports.'],
+  ['incorporate','통합하다, 포함하다','The new model incorporates real-time data.'],
+  ['induce','유발하다, 유도하다','Certain medications can induce drowsiness.'],
+  ['infer','추론하다','We can infer the temperature from the ice-core sample.'],
+  ['inherent','본질적인, 고유의','Risk is inherent in any scientific experiment.'],
+  ['inhibit','억제하다, 방해하다','The drug inhibits the spread of the virus.'],
+  ['initiate','시작하다, 착수하다','The lab initiated a new line of research.'],
+  ['innate','타고난, 선천적인','Some behaviors appear to be innate.'],
+  ['insight','통찰력','The book offers fresh insight into ancient cultures.'],
+  ['integrate','통합하다','The system integrates data from multiple sources.'],
+  ['interpret','해석하다','How we interpret the results depends on the model.'],
+  ['intricate','복잡한, 정교한','Coral reefs form intricate underwater structures.'],
+  ['intrinsic','본질적인, 고유한','Curiosity has intrinsic value in learning.'],
+  ['investigate','조사하다','Police investigated the cause of the fire.'],
+  ['isolate','분리하다, 고립시키다','Researchers isolated the active compound.'],
+  ['notion','개념, 생각','The notion of progress varies across cultures.'],
+  ['nonetheless','그럼에도 불구하고','The results were modest; nonetheless, they were significant.'],
+  ['objective','객관적인 / 목표','Scientists aim for objective measurement.'],
+  ['obscure','모호한 / 모호하게 하다','The author\'s intent remains obscure.'],
+  ['ongoing','진행 중인','The investigation is still ongoing.'],
+  ['paradox','역설','The paradox puzzled philosophers for centuries.'],
+  ['perspective','관점, 시각','Each scholar brings a unique perspective to the topic.'],
+  ['pervasive','만연한, 퍼지는','Social media has become pervasive in daily life.'],
+  ['phenomenon','현상 (pl. phenomena)','Auroras are a remarkable atmospheric phenomenon.'],
+  ['plausible','그럴듯한','The most plausible explanation is climate change.'],
+  ['prevalent','만연한, 일반적인','That myth is prevalent even among educated audiences.'],
+  ['profound','심오한, 깊은','The discovery had profound implications.'],
+  ['prominent','두드러진, 저명한','She is a prominent figure in modern linguistics.']
+];
+
 document.getElementById('seed-awl-btn').addEventListener('click', () => {
   if (!confirm(`Load ${AWL_SEED.length} AWL seed words?`)) return;
   const existing = new Set(state.vocab.cards.map(c => c.front.toLowerCase()));
@@ -1166,6 +1332,21 @@ document.getElementById('seed-awl-btn').addEventListener('click', () => {
   });
   saveState();
   toast(`${count} AWL words added.`); renderVocab();
+});
+
+document.getElementById('seed-essential-btn').addEventListener('click', () => {
+  if (!confirm(`Load ${TOEFL_ESSENTIAL.length} TOEFL Essential words?`)) return;
+  const existing = new Set(state.vocab.cards.map(c => c.front.toLowerCase()));
+  let added = 0, skipped = 0;
+  TOEFL_ESSENTIAL.forEach(([f, b, ex]) => {
+    if (existing.has(f.toLowerCase())) { skipped++; return; }
+    state.vocab.cards.push(newCard(f, b, ex));
+    existing.add(f.toLowerCase());
+    added++;
+  });
+  saveState();
+  toast(`${added} added${skipped ? `, ${skipped} duplicates skipped` : ''}.`);
+  renderVocab();
 });
 
 /* ---------------- Card Management Modal ---------------- */
