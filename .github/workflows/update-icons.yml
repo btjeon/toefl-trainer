@@ -1,0 +1,74 @@
+name: Update App Icons (T96 to T100)
+on:
+  workflow_dispatch:
+jobs:
+  update-icons:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Pillow
+        run: pip install Pillow
+      - name: Generate T100 icons
+        run: |
+          python3 - << 'PYEOF'
+from PIL import Image, ImageDraw, ImageFont
+
+BG = (91, 80, 232, 255)
+WHITE = (255, 255, 255, 255)
+BADGE_FILL = (255, 255, 255, 180)
+BADGE_TEXT = (91, 80, 232)
+
+def rounded_rect(draw, xy, r, fill):
+    x0, y0, x1, y1 = xy
+    draw.rectangle([x0+r, y0, x1-r, y1], fill=fill)
+    draw.rectangle([x0, y0+r, x1, y1-r], fill=fill)
+    for cx, cy in [(x0,y0),(x1-2*r,y0),(x0,y1-2*r),(x1-2*r,y1-2*r)]:
+        draw.ellipse([cx, cy, cx+2*r, cy+2*r], fill=fill)
+
+def load_font(size):
+    for p in ["/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+              "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"]:
+        try: return ImageFont.truetype(p, size)
+        except: pass
+    return ImageFont.load_default()
+
+def make_icon(size, maskable=False):
+    S = size
+    img = Image.new("RGBA", (S, S), (0,0,0,0))
+    draw = ImageDraw.Draw(img)
+    if maskable or size <= 32:
+        draw.rectangle([0,0,S,S], fill=BG)
+    else:
+        r = int(S * 0.18)
+        rounded_rect(draw, (0,0,S-1,S-1), r, BG)
+    if size >= 64:
+        font = load_font(int(S * 0.38))
+        bb = draw.textbbox((0,0), "T100", font=font)
+        draw.text(((S-(bb[2]-bb[0]))//2-bb[0], int(S*0.20)-bb[1]), "T100", font=font, fill=WHITE)
+        bh = int(S * 0.18)
+        by = S - bh - int(S * 0.06)
+        bw = int(S * 0.65)
+        bx = (S - bw)//2
+        rounded_rect(draw, (bx, by, bx+bw-1, by+bh-1), bh//2, BADGE_FILL)
+        bf = load_font(int(bh * 0.55))
+        bbb = draw.textbbox((0,0), "TOEFL", font=bf)
+        draw.text((bx+(bw-(bbb[2]-bbb[0]))//2-bbb[0], by+(bh-(bbb[3]-bbb[1]))//2-bbb[1]), "TOEFL", font=bf, fill=BADGE_TEXT)
+    else:
+        draw.text((7, 5), "T", font=load_font(18), fill=WHITE)
+    result = Image.new("RGB", (S,S), (91,80,232))
+    result.paste(img, mask=img.split()[3])
+    return result
+
+for fname, size, maskable in [("icon-512.png",512,False),("icon-maskable-512.png",512,True),("icon-192.png",192,False),("apple-touch-icon.png",180,False),("favicon-32.png",32,False)]:
+    make_icon(size, maskable).save(fname, "PNG")
+    print(f"Saved {fname}")
+PYEOF
+      - name: Commit icons
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add icon-512.png icon-maskable-512.png icon-192.png apple-touch-icon.png favicon-32.png
+          git diff --cached --quiet || git commit -m "Update app icons: T96 to T100"
+          git push
